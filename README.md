@@ -1,84 +1,90 @@
-🕵️ Intern Hunter 2.0 (iOS Edition)
-An automated, stealthy, and intelligent internship scraper running natively on iPhone via iSH (Alpine Linux).
+Here is your shiny new README.md for Version 2.0.
 
-Python Web Scraping iOS Automation Alpine Linux BeautifulSoup
+This documentation highlights the new "Brain" (Memory) and "Voice" (Discord) of your bot. You can overwrite your old README with this one.
 
-📖 Overview
-Finding an internship involves checking the same 20+ career pages every day. Intern Hunter automates this process. It runs as a background process on an iPhone (using the iSH terminal emulator), scrapes target career portals, and uses "Smart Diff" logic to detect new job postings. If a relevant role (e.g., "Backend Intern") appears, it instantly pushes a notification to the phone via Ntfy.sh.
+🧠 Intern Hunter V2 (Discord + Memory Edition)
+A smart, persistent, and stealthy internship scraper that never forgets.
+
+Python 3 Discord Webhooks JSON Database Automation
+
+🚀 What's New in V2?
+🧠 Long-Term Memory: The bot now creates a local database (job_history.json). It remembers every job it has ever seen.
+
+🔇 Zero False Alarms: If you restart the bot, it checks its memory first. It will not spam you with 20 notifications for jobs you already saw yesterday.
+
+💬 Discord Integration: Replaced simple push notifications with beautiful Discord Embeds (Color-coded, Clickable Links, Job Titles).
+
+📱 Multi-Platform: Runs natively on iOS (iSH), Android (Termux), and Laptop/PC.
 
 ✨ Key Features
-🧠 Smart Diffing: Doesn't just check if the "site changed." It calculates the exact text difference (New - Old) to ignore existing jobs and only alert on fresh postings.
+The "Diff" Engine: Scrapes 20+ career sites and compares Current Live Data vs. Stored Memory.
 
-🥷 Stealth Mode: Rotates through a bag of random User-Agents (iPhone, Chrome, Windows, Mac) for every request to evade bot detection and 403 bans.
+Stealth Mode 2.0: Rotates between 50+ User-Agents (iPhone, Mac, Windows, Pixel) to evade 403 bans.
 
-🎯 Sniper Scope (Noise Removal): Automatically strips HTML clutter (<header>, <footer>, <script>, <nav>) to focus strictly on job content, eliminating false alarms from copyright date updates.
+HTML Sniper: Automatically removes <header>, <footer>, and <nav> garbage to prevent false alarms from copyright date updates.
 
-⚡ Double Filtering:
-
-Role Filter: Must contain "Intern", "Grad", or "Fresher".
-
-Tech Filter: Must contain specific skills (e.g., "React", "Python", "Data Science").
-
-🔋 Battery Optimized: Runs for a set duration (2 hours) and automatically kills background processes (location, sshd) upon completion.
-
-📢 Ntfy Integration: Sends instant push notifications with the exact Job Title and Link.
+Smart Filters: Only alerts if the job contains specific keywords (e.g., "React", "Python") AND is an intern role ("Intern", "Fresher").
 
 🛠️ Tech Stack
-Language: Python 3.11
+Core: Python 3.x
 
-Libraries: requests, BeautifulSoup4 (bs4), fake_useragent (custom logic)
+Scraping: requests, BeautifulSoup4
 
-Environment: iSH Shell (Alpine Linux on iOS)
+Database: Local JSON (No SQL required)
 
-Automation: Apple Shortcuts (SSH Trigger)
+Alerts: Discord Webhooks API
 
-Notifications: Ntfy.sh
+⚙️ Installation
+1. Prerequisites
+You need a Discord Webhook URL.
 
-⚙️ Installation (On iPhone/iSH)
-Install System Dependencies:
+Create a private Discord Server.
 
-Bash
-apk add python3 py3-pip git openssh nano
+Go to Channel Settings ⚙️ → Integrations → Webhooks.
+
+Copy the URL.
+
+2. Setup (Laptop or Phone)
 Clone the Repository:
 
 Bash
 git clone https://github.com/YOUR_USERNAME/InternHunter.git
 cd InternHunter
-Install Python Libraries:
+Install Dependencies:
 
 Bash
-pip3 install requests beautifulsoup4
-🚀 Usage
-Option 1: Manual Run
-Bash
-python3 scrap.py
-Option 2: iOS Shortcut (One-Tap Trigger)
-This project is designed to be triggered by an iOS Shortcut that connects via SSH to localhost.
-
-Host: 127.0.0.1
-
-Port: 2022 (Bypasses iOS limitations)
-
-User: root
-
-Command:
-
-Bash
-# Keeps the script alive in background even if app closes
-cat /dev/location > /dev/null & cd InternHunter && python3 scrap.py > /dev/null 2>&1 &
-📝 Configuration
-Edit scrap.py to customize your hunt:
+pip install requests beautifulsoup4
+Configure the Bot: Open scrap.py and paste your Webhook URL:
 
 Python
-# Add your target websites
-SITES = [
-    "https://careers.google.com/jobs/results/",
-    "https://openai.com/careers/search",
-    # ... add more
-]
+# Inside scrap.py
+DISCORD_WEBHOOK = "https://discord.com/api/webhooks/YOUR_KEY_HERE"
+🏃 Usage
+First Run (The Learning Phase)
+Bash
+python3 scrap.py
+The bot will scan all websites.
 
-# Define what you are looking for
-REQUIRED_TYPE = ["intern", "fresher"]
-KEYWORDS = ["react", "python", "backend"]
+It will populate job_history.json with all existing jobs.
+
+Expect a spam of notifications (only this one time) as it "learns" the current state of the world.
+
+Subsequent Runs (The Watchdog Phase)
+The bot stays silent for all known jobs.
+
+It only sends a notification if a NEW job appears that is not in job_history.json.
+
+📱 Mobile Automation
+iOS (iSH): Uses cat /dev/location hack to keep running in background.
+
+Android (Termux): Uses termux-wake-lock to prevent sleep mode.
+
+📂 Project Structure
+Plaintext
+InternHunter/
+├── scrap.py            # The Main Brain (Logic + Scraper)
+├── job_history.json    # The Memory (Auto-generated, DO NOT EDIT)
+├── README.md           # This file
+└── .gitignore          # Ignores junk files
 ⚠️ Disclaimer
-This tool is for educational purposes and personal use only. Please respect robots.txt policies and do not overload servers with aggressive request intervals. The default check interval is set to 15 minutes to be polite.
+This tool is for educational purposes. Please respect robots.txt and do not lower the CHECK_INTERVAL below 15 minutes to avoid overloading career portals.
