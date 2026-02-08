@@ -4,19 +4,21 @@ import time
 import sys
 import os
 import random
+import json
 
 # --- CONFIGURATION ---
-NTFY_TOPIC = "Internships_2026_A24" 
+# 1. PASTE YOUR DISCORD WEBHOOK URL HERE (Keep the quotes!)
+DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1470059124078149749/mbdfVHQJwNXUskEKgcsJDEQ7js0NPGbfPYCRlTdTyY4RtFynALU0ZAw-65LFsDOwyFMB"
 
-# [UPGRADE 1] The Bag of Masks (User Agents)
-# This makes the script pretend to be a different device every time
+# 2. File Name for the database
+MEMORY_FILE = "job_history.json"
+
+# [Stealth Mode] User Agents
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UQ1A.240105.004) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15"
+    "Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/UQ1A.240105.004) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36"
 ]
 
 SITES = [
@@ -57,22 +59,40 @@ KEYWORDS = [
 CHECK_INTERVAL = 900  # 15 Minutes
 DURATION = 7200       # 2 Hours
 
-def notify(message, priority="default", title="Intern Hunter"):
-    try:
-        requests.post(
-            f"https://ntfy.sh/{NTFY_TOPIC}",
-            data=message.encode('utf-8'),
-            headers={
-                "Title": title,
-                "Priority": priority,
-                "Tags": "briefcase"
-            },
-            timeout=10
-        )
-        print(f"-> Notification sent: {message}")
-    except Exception as e:
-        print(f"Failed to send notification: {e}")
+# --- DATABASE ENGINE ---
+def load_memory():
+    """Tries to read the history file. If missing, starts fresh."""
+    if os.path.exists(MEMORY_FILE):
+        try:
+            with open(MEMORY_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {} 
 
+def save_memory(memory):
+    """Saves the current list of jobs to the file"""
+    with open(MEMORY_FILE, 'w') as f:
+        json.dump(memory, f, indent=4)
+
+# --- NOTIFICATION SYSTEM (DISCORD) ---
+def notify_discord(job_title, url):
+    """Sends the alert to your Discord Channel"""
+    data = {
+        "embeds": [{
+            "title": "🎯 New Internship Found!",
+            "description": f"**Role:** {job_title}\n**Link:** [Click to Apply]({url})",
+            "color": 5763719, # Green Color
+            "footer": {"text": "Hunter Bot 2.0"}
+        }]
+    }
+    try:
+        requests.post(DISCORD_WEBHOOK, json=data)
+        print(f"-> Discord alert sent: {job_title}")
+    except Exception as e:
+        print(f"Failed to send to Discord: {e}")
+
+# --- MAIN LOGIC ---
 def get_random_headers():
     return {
         'User-Agent': random.choice(USER_AGENTS),
@@ -82,91 +102,59 @@ def get_random_headers():
 
 def get_site_lines(url):
     try:
-        # 1. Use Random Mask
         headers = get_random_headers()
         res = requests.get(url, headers=headers, timeout=20)
-        
-        if res.status_code != 200:
-            print(f"Error: {url} returned status code {res.status_code}")
-            return None
-
+        if res.status_code != 200: return None
         soup = BeautifulSoup(res.text, 'html.parser')
         
-        # --- [UPGRADE 2] THE SNIPER SCOPE (NOISE REMOVAL) ---
-        # We find and DELETE these tags from the page before reading it
-        for tag in soup(['header', 'footer', 'nav', 'script', 'style', 'iframe', 'meta', 'noscript']):
+        # Noise Removal
+        for tag in soup(['header', 'footer', 'nav', 'script', 'style', 'iframe', 'meta']):
             tag.decompose()
-        # ----------------------------------------------------
-        
-        # Now we only read what's left (The Body/Content)
+            
         text = soup.get_text().lower()
-        lines = set(line.strip() for line in text.splitlines() if line.strip())
+        lines = set(line.strip() for line in text.splitlines() if line.strip() and len(line.strip()) < 200)
         return lines
-    except Exception as e:
-        print(f"Error reading {url}: {e}")
+    except:
         return None
 
 def main():
-    print(f"--- STARTING SNIPER HUNTER ({len(SITES)} Sites) ---")
-    notify(f"Hunter started with Noise Removal active.", title="Sniper Mode ON")
+    print("--- STARTING PERMANENT MEMORY HUNTER ---")
     
+    # 1. Load Memory
+    history = load_memory()
+    print(f"Memory loaded. I remember {sum(len(v) for v in history.values())} past jobs.")
+
     start_time = time.time()
-    site_memory = {}
-    failed_sites = []
-
-    print("Performing initial scan...")
-    for url in SITES:
-        print(f"Scanning: {url}...")
-        lines = get_site_lines(url)
-        
-        if lines is not None:
-            site_memory[url] = lines
-        else:
-            failed_sites.append(url)
-
-    if failed_sites:
-        print(f"Warning: {len(failed_sites)} sites failed.")
-        broken_list = "\n".join([u.split('//')[1].split('/')[0] for u in failed_sites])
-        notify(f"Could not scrape these sites:\n{broken_list}", priority="high", title="⚠️ Broken Sites Report")
-    else:
-        print("All sites scanned successfully!")
-
-    print("Initial scan complete. Waiting for changes...")
-
+    
+    # 2. Main Loop
     while time.time() - start_time < DURATION:
+        print(f"\n[{time.strftime('%H:%M')}] Scanning websites...")
+        
+        for url in SITES:
+            current_lines = get_site_lines(url)
+            if current_lines is None: continue 
+
+            if url not in history: history[url] = []
+
+            found_something_new = False
+            for line in current_lines:
+                if any(t in line for t in REQUIRED_TYPE) and any(k in line for k in KEYWORDS):
+                    if line not in history[url]:
+                        print(f"NEW FOUND: {line}")
+                        notify_discord(line, url)
+                        history[url].append(line)
+                        found_something_new = True
+            
+            if found_something_new:
+                save_memory(history)
+
+        print("Scan complete. Sleeping for 15 mins...")
         time.sleep(CHECK_INTERVAL)
-        
-        print(f"\n[{time.strftime('%H:%M')}] Checking for updates...")
-        
-        for url in list(site_memory.keys()):
-            new_lines = get_site_lines(url)
-            
-            if new_lines is None:
-                continue
 
-            old_lines = site_memory[url]
-            added_lines = new_lines - old_lines
-            
-            if added_lines:
-                found_matches = []
-                for line in added_lines:
-                    if any(t in line for t in REQUIRED_TYPE):
-                        if any(k in line for k in KEYWORDS):
-                            found_matches.append(line)
-
-                if found_matches:
-                    top_match = found_matches[0]
-                    display_text = top_match[:100] + "..." if len(top_match) > 100 else top_match
-                    msg = f"FOUND: {display_text}\nLink: {url}"
-                    notify(msg, priority="high", title="🎯 INTERNSHIP FOUND")
-                    site_memory[url] = new_lines
-                else:
-                    # Content changed, but it was just noise or boring text
-                    site_memory[url] = new_lines
-
-    notify("Hunter finished. Shutting down server.", title="Hunter Offline")
-    os.system("pkill -f location")
-    os.system("pkill sshd")
+    print("Hunter finished.")
+    # Detect if we are on iPhone (iSH) or Laptop
+    if os.path.exists("/dev/location"):
+        os.system("pkill -f location") # Only run this on iPhone
     sys.exit()
 
 if __name__ == "__main__":
