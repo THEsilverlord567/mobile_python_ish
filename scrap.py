@@ -8,7 +8,7 @@ import json
 
 # --- CONFIGURATION ---
 # 1. PASTE YOUR DISCORD WEBHOOK URL HERE (Keep the quotes!)
-DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1470059124078149749/mbdfVHQJwNXUskEKgcsJDEQ7js0NPGbfPYCRlTdTyY4RtFynALU0ZAw-65LFsDOwyFMB"
+DISCORD_WEBHOOK = "your_discord_webhook_url"
 
 # 2. File Name for the database
 MEMORY_FILE = "job_history.json"
